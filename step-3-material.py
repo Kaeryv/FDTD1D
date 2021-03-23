@@ -1,8 +1,6 @@
 from matplotlib.pyplot import hist2d, plot, show, draw, title, figure, pause, axis
-from numpy import zeros
+from numpy import zeros, ones, max
 from math import exp, pow
-
-
 
 # Initialization
 # - grille
@@ -18,21 +16,25 @@ N = 300 # Nombre de cellules de Yee
 # Le coefficient C0dt/dz = 0.5
 m = 0.5
 
-TMAX = 100 # Nombre d'itérations de durée dt
+TMAX = 900 # Nombre d'itérations de durée dt
 
 Ex = zeros((N))
 Hy = zeros((N))
+eps = ones((N))
 
-Ex[149] = 1.0
-Ex[150] = 0.5
-Ex[151] = 1.0
+eps[150:200] = 3.
+
+
 #for i in range(100, 200):
 #    Ex[i] = gaussian(i, 150, 10)
 
 #fig = figure()
 hEx = plot(Ex, 'r-')
 hHy = plot(Hy, 'b-')
+heps = plot((eps-1)/max(eps), 'k-')
 axis([0, 300, -1, 1])
+E1, E2, E3 = 0, 0, 0
+H1, H2, H3 = 0, 0, 0
 for t in range(TMAX):
 
     # Ne pas oublier les conditions initiales! ou frontières
@@ -41,20 +43,27 @@ for t in range(TMAX):
         Hy[k] = Hy[k] - m * (Ex[k+1]-Ex[k])
 
     # pour k = N, condition PEC
-    Hy[N-1] = Hy[N-1] - m * (0 - Ex[N-1])
- 
+    Hy[N-1] = Hy[N-1] - m * (E3 - Ex[N-1])
+    H3 = H2
+    H2 = H1
+    H1 = Hy[0]
     # Calculer Ex en fonction de Hy
 
     # Pour k = 0, condition PEC
-    Ex[0] = Ex[0] - m * (Hy[0] - 0)
+    Ex[0] = Ex[0] - m/eps[k] * (Hy[0] - H3)
     for k in range(1, N):
-        Ex[k] = Ex[k] - m * (Hy[k]-Hy[k-1])
+        Ex[k] = Ex[k] - m/eps[k] * (Hy[k]-Hy[k-1])
+    E3 = E2
+    E2 = E1
+    E1 = Ex[-1]
+    Ex[10] += gaussian(t, 50, 10)
 
-    title(t)
-    hEx[0].set_ydata(Ex)
-    hHy[0].set_ydata(Hy)
-    # En matlab: set(hEx,'Ydata', Ex)
-    pause(0.000001)
+    if not (t % 5):
+        title(t)
+        hEx[0].set_ydata(Ex)
+        hHy[0].set_ydata(Hy)
+        # En matlab: set(hEx,'Ydata', Ex)
+        pause(0.00000001)
     
     '''
     En matlab:
