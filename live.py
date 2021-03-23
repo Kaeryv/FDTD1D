@@ -1,6 +1,8 @@
-from matplotlib.pyplot import hist2d, plot, show, draw, title, figure, pause, axis
-from numpy import zeros, ones
-from math import exp, pow
+from matplotlib.pyplot import hist2d, legend, plot, show, draw, title, figure, pause, axis, xlabel
+from numpy import zeros, ones, zeros_like, complex64, exp
+from math import pow, pi
+
+from numpy.core.function_base import linspace
 
 
 
@@ -11,38 +13,47 @@ from math import exp, pow
 def gaussian(x, x0, sigma):
     return exp(  -pow( (x - x0) / sigma, 2.)   /2.)
 
-N = 300 # Nombre de cellules de Yee
+N = 150 # Nombre de cellules de Yee
+NF = 500 # nbr de valeurs de fréquences
+TMAX = 1000 # Nombre d'itérations de durée dt
 
 # on considère uniquement de l'air e=1
 
-# Le coefficient C0 dt/dz = 0.5   
+# Le coefficient c dt/dz = 0.5   
+# Nombre de Courant  C0 = v dt / dz = 0.5 pour que ça marche en 1D
 m = 0.5
 
-TMAX = 1000 # Nombre d'itérations de durée dt
 
 Ex = zeros((N))
 Hy = zeros((N))
 eps = ones((N))
+f = linspace(1/200, 1/60., NF)
+K = exp(-2*pi*1j*f) # Partie de la TF indépendante de l'itération.
+refl = zeros_like(f, dtype=complex64) # Juste un vecteur comme f, mais avec des zéros.
+trsf = zeros_like(f, dtype=complex64) # Pas besoin de l'histoire de dtype en matlab
+src  = zeros_like(f, dtype=complex64)
 
-eps[100:150] = 3.
-eps[180:200] = 3.
+
+eps[50:100] = 3. # Un slab de 50 dz
+#eps[180:200] = 3.
 # Ex[149] = 1.0
 # Ex[150] = 0.5
 # Ex[151] = 1.0
-# for i in range(100, 200):
-#     Ex[i] = gaussian(i, 150, 10)
 
-#fig = figure()
-hEx = plot(Ex, 'r-')
-hHy = plot(Hy, 'b-')
-heps = plot((eps-1)/max(eps-1), 'b-')
 
 E1, E2, E3 = 0, 0, 0
 H1, H2, H3 = 0, 0, 0
 
 source_z = 10
 
-axis([0, N, -2.2, 2.2])
+display = False
+
+if display:
+    hEx = plot(Ex, 'r-')
+    hHy = plot(Hy, 'b-')
+    heps = plot((eps-1)/max(eps-1), 'k-')
+    axis([0, N, -2.2, 2.2])
+
 for t in range(TMAX):
 
     # Ne pas oublier les conditions initiales! ou frontières
@@ -72,21 +83,38 @@ for t in range(TMAX):
     E1 = Ex[N-1] # Ex[N] en matlab, dernier élément de la grille Ex
 
     Ex[source_z] += gaussian(t, 50, 10)
+
+    ''' Calcul des spectres '''
+    trsf += Ex[-1] * K**t
+    refl += Ex[1] * K**t
+    src += gaussian(t, 50, 10) * K**t
+
+    ''' DISPLAY '''
     # t % 10 modulo
-    if not (t % 2):
+    if not (t % 2) and display:
         title(t)
         hEx[0].set_ydata(Ex)
         hHy[0].set_ydata(Hy)
-        # En matlab: set(hEx,'Ydata', Ex)
         pause(0.00001)
-    
-    '''
-    En matlab:
-    h = plot(rand(10,1))
-    for n = 1:20
-        set(h,'Ydata',rand(10,1))
-        pause(.0000001)
-    end
-    '''
+
+
+dz = 10 * 1e-9 # m soit 10 nm => slab de 50 * 10 nm, soit 500nm de slab
+# Nombre de Courant
+# Courant = 0.5 = c dt / dz = m
+c = 300000 * 1e3 # m/s
+dt = dz * 0.5 / c # D'après la formule de Courant, en s
+f = f / dt # en Hz
+lamb = c / f # en m
+if True:
+    trsf = abs(trsf/2)**2
+    refl = abs(refl/2)**2
+    src = abs(src)**2
+    plot(lamb/1e-9, trsf/src, 'r-', label='Trans')
+    # hold on en matlab
+    plot(lamb/1e-9, refl/src, 'b-', label='Refl')
+    plot(lamb/1e-9, src/max(src), 'k-')
+    xlabel("Fréquence en Hz")
+    xlabel("Longueur d'onde en nm")
+    legend()
 
 show()
