@@ -20,7 +20,6 @@ eps.extend([ 1 for i in range(100) ])
 
 N = len(eps)
 eps = asarray(eps)
-# on considère uniquement de l'air e=1
 
 # Le coefficient C0dt/dz = 0.5
 m = 0.5
@@ -43,7 +42,8 @@ heps = plot((eps-1)/max(eps), 'k-')
 axis([0, N, -1, 1])
 E1, E2, E3 = 0, 0, 0
 H1, H2, H3 = 0, 0, 0
-f = linspace(0,0.017,2000)
+f = linspace(0, 0.017, 2000) # La fréquence maximale dépend de la résolution temporelle.
+# RT(f) = integral( E(t) * exp(-i*2*pi*f*t) ) dt avec dt = 1
 K = exp(-1j * 2 * pi * f)
 
 spectum_source = zeros_like(f, dtype=complex64)
@@ -98,10 +98,13 @@ figure()
 src = absolute(spectum_source)**2
 refl = absolute(spectum_reflec)**2 
 tran = absolute(spectum_transm)**2
-plot(f, src/max(src), 'k-')
-plot(f, tran/src, 'r-')
-plot(f, refl/src, 'b-')
-axvspan(1/61/2, 1/63/2, color='k', alpha=0.5)
+c0 = 300000 * 1e+3 # [m/s]
+dz =  10 * 1e-9 # [m]
+dt = dz / c0 / 2.0 # Formule de Courant
+plot(f/dt, src/max(src), 'k-')
+plot(f/dt, tran/src, 'r-')
+plot(f/dt, refl/src, 'b-')
+#axvspan(2.4, color='k', alpha=0.5)
 
 title("Spectres de réflexion et transmission pour le randome")
 xlabel("Fréquence normalisée")

@@ -72,3 +72,7 @@ for t in range(TMAX):
     '''
 
 show()
+
+
+# Hy  0 1 1 1 1 1 1 0 0
+# Ex  0 1 1 1 0 0 0 0 0
